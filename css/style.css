@@ -1,0 +1,81 @@
+html, body {
+	padding: 0px;
+	margin: 0px;
+	height: 100%;
+	width: 100%;
+	overflow: hidden;
+}
+
+#controls {
+	border-bottom: 1px solid black;
+	padding: 5px;
+	padding-bottom: 10px;
+	line-height: 30px;
+	vertical-align: middle;
+}
+#controls > div > * {
+	height: 20px;
+	box-sizing: border-box;
+	vertical-align: middle;
+}
+#controls .spacer {
+	margin-left: 5px;
+	margin-right: 5px;
+	display: inline-block;
+	line-height: 18px;
+}
+#controls .spacer::before {
+	content: '|';
+}
+#controls .part {
+	display: inline-block;
+	border-left: 1px solid black;
+	padding-left: 10px;
+	padding-right: 10px;
+	margin: 0px;
+}
+
+#controls input[type=radio] {
+	display: none;
+}
+#controls label {
+	padding-right: 2px;
+	padding-left: 2px;
+	margin: 0px 1px;
+}
+#controls input[type=radio]:checked + label {
+	border: 4px solid #2ea2cc;
+	margin: 0px 0px;;
+}
+
+#canvas {
+	display: block;
+}
+#canvas.mode-translate:hover {
+	cursor: move;
+}
+
+.icon {
+	height: 32px !important;
+	width: 32px !important;
+	display: inline-block;
+	background-size: 100%;
+}
+.icon.freehand {
+	background-image: url(img/icon-freehand.png);
+}
+.icon.square {
+	background-image: url(img/icon-square.png);
+}
+.icon.circle {
+	background-image: url(img/icon-circle.png);
+}
+.icon.translate {
+	background-image: url(img/icon-translate.png);
+}
+.icon.undo {
+	background-image: url(img/icon-undo.png);
+}
+.icon.redo {
+	background-image: url(img/icon-redo.png);
+}

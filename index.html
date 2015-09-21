@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+		<meta name="mobile-web-app-capable" content="yes">
+		<meta name="apple-mobile-web-app-capable" content="yes">
+		<title>Draw</title>
+		<link rel="stylesheet" href="css/style.css">
+	</head>
+	<body>
+		<div id="controls">
+			<div class="part">
+				Line: <input id="control-stroke-style" type="color" value="#000000">
+				<select id="control-line-width">
+					<option value="0">0</option>
+					<option value="2" selected>2</option>
+					<option value="3">3</option>
+					<option value="4">4</option>
+					<option value="6">6</option>
+					<option value="8">8</option>
+					<option value="10">10</option>
+					<option value="14">14</option>
+					<option value="18">18</option>
+					<option value="24">24</option>
+				</select>
+
+				<div class="spacer"></div>
+
+				Fill: <input id="control-fill-style" type="color" value="#000000">
+				<input type="checkbox" id="control-fill-enabled">
+			</div><div class="part">
+				<div class="icon undo" onclick="painter.undo()"></div>
+				<div class="icon redo" onclick="painter.redo()"></div>
+			</div><div class="part">
+				<input id="mode-radio-1" type="radio" name="mode" onclick="painter.setMode('freehand')">
+				<label for="mode-radio-1" class="icon freehand"></label>
+
+				<input id="mode-radio-2" type="radio" name="mode" onclick="painter.setMode('square')">
+				<label for="mode-radio-2" class="icon square"></label>
+
+				<input id="mode-radio-3" type="radio" name="mode" onclick="painter.setMode('circle')">
+				<label for="mode-radio-3" class="icon circle"></label>
+
+				<input id="mode-radio-4" type="radio" name="mode" onclick="painter.setMode('translate')">
+				<label for="mode-radio-4" class="icon translate"></label>
+			</div>
+		</div>
+		<canvas id="canvas"></canvas>
+		<script src="js/painter.js"></script>
+		<script>
+			var can = document.getElementById("canvas");
+			can.width = window.innerWidth;
+			can.height = window.innerHeight;
+
+			var painter = new Painter(can);
+
+			window.addEventListener("resize", function() {
+				can.width = window.innerWidth;
+				can.height = window.innerHeight;
+				painter.draw();
+			});
+
+			function $(q) {
+				return document.querySelector(q);
+			}
+
+			$("input[type=radio]").click();
+
+			function addStyleHandler(elem, key, filter) {
+				painter.setStyle(key, elem.value);
+				elem.addEventListener("change", function() {
+					if (filter && !filter())
+						return;
+
+					painter.setStyle(key, elem.value);
+				});
+			}
+
+			var controlStrokeStyle = $("#control-stroke-style");
+			var controlLineWidth = $("#control-line-width");
+			var controlFillStyle = $("#control-fill-style");
+			var controlFillEnabled = $("#control-fill-enabled");
+
+			//Define `value` on the controlLineWidth select
+			Object.defineProperty(controlLineWidth, "value", {
+				get: function() {
+					return this.selectedOptions[0].value;
+				}
+			});
+
+			//Define `value` on the controlFillEnabled checkbox
+			Object.defineProperty(controlFillEnabled, "value", {
+				get: function() {
+					if (this.checked)
+						return controlFillStyle.value;
+					else
+						return "rgba(0, 0, 0, 0)";
+				}
+			});
+
+			addStyleHandler(controlStrokeStyle, "strokeStyle");
+			addStyleHandler(controlLineWidth, "lineWidth");
+			addStyleHandler(controlFillStyle, "fillStyle", function() { return controlFillEnabled.checked });
+			addStyleHandler(controlFillEnabled, "fillStyle");
+
+			var shortcuts = [
+				{
+					key: "z",
+					ctrlKey: true,
+					on: function() {
+						painter.undo();
+					}
+				}, {
+					key: "y",
+					ctrlKey: true,
+					on: function() {
+						painter.redo();
+					}
+				}
+			]
+
+			window.addEventListener("keydown", function(evt) {
+				shortcuts.forEach(function(s) {
+					for (var i in s) {
+						if (evt[i] !== undefined && evt[i] !== s[i])
+							return;
+					}
+
+					evt.preventDefault();
+					s.on();
+				});
+			});
+		</script>
+	</body>
+</html>
