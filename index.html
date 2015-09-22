@@ -15,35 +15,38 @@
 				<select id="control-line-width">
 					<option value="0">0</option>
 					<option value="2" selected>2</option>
-					<option value="3">3</option>
 					<option value="4">4</option>
-					<option value="6">6</option>
 					<option value="8">8</option>
-					<option value="10">10</option>
-					<option value="14">14</option>
+					<option value="12">12</option>
 					<option value="18">18</option>
 					<option value="24">24</option>
+					<option value="32">32</option>
+					<option value="48">48</option>
+					<option value="64">64</option>
 				</select>
 
-				<div class="spacer"></div>
-
+			</div><div class="part">
 				Fill: <input id="control-fill-style" type="color" value="#000000">
 				<input type="checkbox" id="control-fill-enabled">
 			</div><div class="part">
 				<div class="icon undo" onclick="painter.undo()"></div>
 				<div class="icon redo" onclick="painter.redo()"></div>
+				<div class="icon clear" onclick="if (window.confirm('Are you sure you want to clear the screen?')) painter.clear()"></div>
 			</div><div class="part">
 				<input id="mode-radio-1" type="radio" name="mode" onclick="painter.setMode('freehand')">
 				<label for="mode-radio-1" class="icon freehand"></label>
 
-				<input id="mode-radio-2" type="radio" name="mode" onclick="painter.setMode('square')">
-				<label for="mode-radio-2" class="icon square"></label>
+				<input id="mode-radio-2" type="radio" name="mode" onclick="painter.setMode('rectangle')">
+				<label for="mode-radio-2" class="icon rectangle"></label>
 
 				<input id="mode-radio-3" type="radio" name="mode" onclick="painter.setMode('circle')">
 				<label for="mode-radio-3" class="icon circle"></label>
 
 				<input id="mode-radio-4" type="radio" name="mode" onclick="painter.setMode('translate')">
 				<label for="mode-radio-4" class="icon translate"></label>
+
+				<input id="mode-radio-5" type="radio" name="mode" onclick="painter.setMode('select')">
+				<label for="mode-radio-5" class="icon select"></label>
 			</div>
 		</div>
 		<canvas id="canvas"></canvas>
