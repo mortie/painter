@@ -9,10 +9,47 @@
 	}
 
 	//class Overlay {
-		function Overlay() {
+		function Overlay(painter) {
 			var self = this;
 			this.visible = false;
 			this.elem = null;
+			this.painter = painter;
+
+			this.keyHandler = function(evt) {
+				var t = new Point();
+				switch (evt.keyCode) {
+				case 39:
+					t.x = 1;
+					break;
+				case 37:
+					t.x = -1;
+					break;
+				case 40:
+					t.y = 1;
+					break;
+				case 38:
+					t.y = -1;
+					break;
+				case 46:
+					if (self.clickdelete)
+						self.clickdelete();
+					self.hide();
+					return;
+				default:
+					return;
+				}
+
+				if (!evt.shiftKey) {
+					t.x *= 10;
+					t.y *= 10;
+				}
+
+				self.elem.translate(t.x, t.y);
+				self.pos.x += t.x;
+				self.pos.y += t.y;
+				self.painter.draw();
+				self.update(self.painter.offset);
+			};
 
 			function menuEntry(key, name) {
 				var li = document.createElement("li");
@@ -22,6 +59,8 @@
 				li.onclick = function() {
 					if (self["click"+key])
 						self["click"+key]();
+
+					self.hide();
 				};
 				return li;
 			}
@@ -39,17 +78,24 @@
 
 			this.menuElem = document.createElement("ul");
 			this.menuElem.appendChild(menuEntry("delete", "Delete"));
+			this.menuElem.appendChild(menuEntry("sendtoback", "Send To Back"));
+			this.menuElem.appendChild(menuEntry("sendtofront", "Send To Front"));
 			this.menuElem.style.cssText =
 				"box-sizing: border-box;"+
 				"display: inline-block;"+
 				"background: white;"+
 				"border: 1px solid black;"+
 				"border-radius: 20px;"+
-				"padding: 5px;"+
+				"padding: 10px;"+
 				"list-style-type: none";
 
 			this.containerElem = document.createElement("div");
 			this.containerElem.style.cssText =
+				"-moz-transition: top 0s linear, left 0s linear;"+
+				"-webkit-transition: top 0s linear, left 0s linear;"+
+				"-ms-transition: top 0s linear, left 0s linear;"+
+				"-o-transition: top 0s linear, left 0s linear;"+
+				"transition: top 0s linear, left 0s linear;"+
 				"position: fixed;"+
 				"top: 0px;"+
 				"left: 0px;"+
@@ -62,8 +108,8 @@
 		}
 
 		Overlay.prototype.update = function(offset) {
-			this.containerElem.style.left = (this.pos.x + this.camera.x + offset.x - 6) + "px";
-			this.containerElem.style.top = (this.pos.y + this.camera.y + offset.y - 6) + "px";
+			this.containerElem.style.left = (this.camera.x + this.pos.x + offset.x - 6) + "px";
+			this.containerElem.style.top = (this.camera.y + this.pos.y  + offset.y - 6) + "px";
 		};
 
 		Overlay.prototype.show = function(elem, offset) {
@@ -73,21 +119,39 @@
 
 			this.pos.x = rect.start.x;
 			this.pos.y = rect.start.y;
+			this.update(offset);
 
-			this.containerElem.style.left = (this.camera.x + rect.start.x + offset.x - 6) + "px";
-			this.containerElem.style.top = (this.camera.y + rect.start.y + offset.y - 6) + "px";
 			this.containerElem.style.display = "block";
 
 			this.boundingElem.style.width = (rect.end.x - rect.start.x + 10) + "px";
 			this.boundingElem.style.height = (rect.end.y - rect.start.y + 10) + "px";
+
+			window.removeEventListener("keydown", this.keyHandler);
+			window.addEventListener("keydown", this.keyHandler);
 		};
 
 		Overlay.prototype.hide = function() {
 			this.visible = false;
 			this.elem = null;
 			this.containerElem.style.display = "none";
+			window.removeEventListener("keydown", this.keyHandler);
 		};
 	//}
+
+	var Shape = {
+		isIntersected: function(s, x, y) {
+			var rect = s.getBoundingRect();
+
+			if (
+				x >= rect.start.x && x <= rect.end.x &&
+				y >= rect.start.y && y <= rect.end.y
+			) {
+				return true;
+			}
+
+			return false;
+		}
+	};
 
 	//class Point {
 		function Point(x, y) {
@@ -142,16 +206,7 @@
 		};
 
 		Freehand.prototype.isIntersected = function(x, y) {
-			var rect = this.getBoundingRect();
-
-			if (
-				x >= rect.start.x && x <= rect.end.x &&
-				y >= rect.start.y && y <= rect.end.y
-			) {
-				return true;
-			}
-
-			return false;
+			return Shape.isIntersected(this, x, y);
 		};
 
 		Freehand.prototype.getBoundingRect = function() {
@@ -184,17 +239,82 @@
 				point.y += y;
 			});
 		};
-	//}
+		//}
 
-	//class Rectangle {
+		//class Line {
+		function Line(x, y) {
+			this.type = "Line";
+			this.start = new Point(x, y);
+			this.end = new Point(x, y);
+		}
+
+		Line.prototype.draw = function(ctx) {
+			this.start.draw(ctx);
+			this.end.draw(ctx);
+			ctx.beginPath();
+			ctx.moveTo(this.start.x, this.start.y);
+			ctx.lineTo(this.end.x, this.end.y);
+			ctx.stroke();
+		};
+
+		Line.prototype.isIntersected = function(x, y) {
+			return Shape.isIntersected(this, x, y);
+		};
+
+		Line.prototype.getBoundingRect = function() {
+			var lwidth = parseInt(this.styles.lineWidth) / 2 || 0;
+
+			var tmp;
+			var start = new Point(this.start.x, this.start.y);
+			var end = new Point(this.end.x, this.end.y);
+
+			if (this.end.x < this.start.x) {
+				tmp = start.x;
+				start.x = end.x;
+				end.x = tmp;
+			}
+
+			if (this.end.y < this.start.y) {
+				tmp = start.y;
+				start.y = end.y;
+				end.y = tmp;
+			}
+
+			return {
+				start: new Point(start.x - lwidth, start.y - lwidth),
+				end: new Point(end.x + lwidth, end.y + lwidth)
+			};
+		};
+
+		Line.prototype.translate = function(x, y) {
+			this.start.x += x;
+			this.start.y += y;
+			this.end.x += x;
+			this.end.y += y;
+		};
+		//}
+
+		//class Rectangle {
 		function Rectangle(x, y) {
 			this.type = "Rectangle";
 			this.start = new Point(x, y);
 			this.end = new Point(x, y);
 		}
 
-		Rectangle.prototype.setEnd = function(x, y) {
-			this.end = new Point(x, y);
+		Rectangle.prototype.done = function() {
+			var tmp;
+
+			if (this.end.x < this.start.x) {
+				tmp = this.start.x;
+				this.start.x = this.end.x;
+				this.end.x = tmp;
+			}
+
+			if (this.end.y < this.start.y) {
+				tmp = this.start.y;
+				this.start.y = this.end.y;
+				this.end.y = tmp;
+			}
 		};
 
 		Rectangle.prototype.draw = function(ctx) {
@@ -208,14 +328,7 @@
 		};
 
 		Rectangle.prototype.isIntersected = function(x, y) {
-			if (
-				x >= this.start.x && x <= this.end.x &&
-				y >= this.start.y && y <= this.end.y
-			) {
-				return true;
-			}
-
-			return false;
+			return Shape.isIntersected(this, x, y);
 		};
 
 		Rectangle.prototype.getBoundingRect = function() {
@@ -233,9 +346,9 @@
 			this.end.x += x;
 			this.end.y += y;
 		};
-	//}
-	
-	//class Circle {
+		//}
+
+		//class Circle {
 		function Circle(x, y) {
 			this.type = "Circle";
 			this.pos = new Point(x, y);
@@ -254,15 +367,7 @@
 		};
 
 		Circle.prototype.isIntersected = function(x, y) {
-			if (
-				Math.pow(x - this.pos.x, 2) +
-				Math.pow(y - this.pos.y, 2) <=
-				this.rad * this.rad
-			) {
-				return true;
-			}
-
-			return false;
+			return Shape.isIntersected(this, x, y);
 		};
 
 		Circle.prototype.getBoundingRect = function() {
@@ -279,19 +384,19 @@
 			this.pos.x += x;
 			this.pos.y += y;
 		};
-	//}
+		//}
 
-	//class Painter {
+		//class Painter {
 		window.Painter = function(canvas) {
 			this.canvas = canvas;
 			this.ctx = canvas.getContext("2d");
 			this.styles = {};
 			this.elements = [];
-			this.trash = [];
+			this.deleted = [];
 			this.offset = new Point(canvas.offsetLeft, canvas.offsetTop);
 			this.inTouchLine = false;
 			this.camera = new Point(0, 0);
-			this.overlay = new Overlay();
+			this.overlay = new Overlay(this);
 			this.overlay.camera = this.camera;
 
 			window.addEventListener("resize", function() {
@@ -303,6 +408,8 @@
 			canvas.addEventListener("mousedown", function(evt) {
 				if (this.mode === "freehand")
 					this.startMouse("paintFreehand", evt);
+				else if (this.mode === "line")
+					this.startMouse("paintLine", evt);
 				else if (this.mode === "rectangle")
 					this.startMouse("paintRectangle", evt);
 				else if (this.mode === "circle")
@@ -318,6 +425,8 @@
 			canvas.addEventListener("touchstart", function(evt) {
 				if (this.mode === "freehand")
 					this.startTouch("paintFreehand", evt);
+				else if (this.mode === "line")
+					this.startTouch("paintLine", evt);
 				else if (this.mode === "rectangle")
 					this.startTouch("paintRectangle", evt);
 				else if (this.mode === "circle")
@@ -348,7 +457,7 @@
 			var self = this;
 			var elem = new Freehand();
 			this.elements.push(elem);
-			elem.addPoint(new Point(obj.x, obj.y));
+			elem.addPoint(new Point(obj.x, obj.y), self.ctx);
 
 			var prev = new Point(obj.x, obj.y);
 			var prevTime = new Date().getTime();
@@ -357,15 +466,32 @@
 
 			obj.onmove = function(x, y) {
 				if (
-					(diff(x, prev.x) > 10) ||
-					(diff(y, prev.y) > 10) ||
-					(diff(new Date().getTime(), prevTime) > 100)
-				) {
+						(diff(x, prev.x) > 5) ||
+						(diff(y, prev.y) > 5) ||
+						(diff(new Date().getTime(), prevTime) > 100)
+				   ) {
 					prev.x = x;
 					prev.y = y;
 					elem.addPoint(new Point(x, y), self.ctx);
 					prevTime = new Date().getTime();
 				}
+			};
+
+			obj.onend = function() {
+				self.draw();
+			};
+		};
+		Painter.prototype.paintLine = function(obj) {
+			var self = this;
+			var elem = new Line(obj.x, obj.y);
+			this.elements.push(elem);
+
+			obj.elem = elem;
+
+			obj.onmove = function(x, y) {
+				elem.end.x = x;
+				elem.end.y = y;
+				self.draw();
 			};
 
 			obj.onend = function() {
@@ -380,11 +506,13 @@
 			obj.elem = elem;
 
 			obj.onmove = function(x, y) {
-				elem.setEnd(x, y);
+				elem.end.x = x;
+				elem.end.y = y;
 				self.draw();
 			};
 
 			obj.onend = function() {
+				elem.done();
 				self.draw();
 			};
 		};
@@ -398,9 +526,9 @@
 
 			obj.onmove = function(x, y) {
 				elem.setRadius(Math.sqrt(
-					Math.pow(pos.x - x, 2) +
-					Math.pow(pos.y - y, 2)
-				) / 1.5);
+							Math.pow(pos.x - x, 2) +
+							Math.pow(pos.y - y, 2)
+							) / 1.5);
 
 				self.draw();
 			};
@@ -409,23 +537,15 @@
 				self.draw();
 			};
 		};
-		Painter.prototype.paintTranslate = function(obj, raw) {
-			var self = this;
-			var old = raw;
-
-			obj.onmove = function(x, y, raw) {
-				self.translateCamera(raw.x - old.x, raw.y - old.y);
-				self.overlay.update(self.offset);
-
-				old = raw;
-			};
-		};
 		Painter.prototype.paintSelect = function(obj, raw) {
 			var self = this;
 			var old = raw;
+			var isMoving = false;
 
 			//If the touched element is already selected, we move it around
 			if (self.overlay.elem && self.overlay.elem.isIntersected(obj.x, obj.y)) {
+
+				//Move by draggingn
 				obj.onmove = function(x, y, raw) {
 					self.overlay.elem.translate(raw.x - old.x, raw.y - old.y);
 					self.overlay.show(self.overlay.elem, self.offset);
@@ -436,11 +556,13 @@
 				return;
 			}
 
-			//We're not touching an already selected element,
-			//so we try to select a new element
+			//We know we're not touching an already selected element,
+			//so we hide the overlay, just in case
+			self.overlay.hide();
 
+			//A possible touched element isn't already selected,
+			//so we try to select it
 			var elem;
-
 			for (var i = self.elements.length - 1; i >= 0; --i) {
 				if (self.elements[i].isIntersected(obj.x, obj.y)) {
 					elem = self.elements[i];
@@ -448,19 +570,47 @@
 				}
 			}
 
-			obj.onend = function(x, y) {
-				if (!elem || !elem.isIntersected(x, y)) {
-					self.overlay.hide();
+			//If we move the touch point before releasing, we move the camera
+			//instead of seleccting an element
+			obj.onmove = function(x, y, raw) {
+				if (diff(old.x, raw.x) < 10 && diff(old.y, raw.y) < 10)
 					return;
-				}
+
+				self.translateCamera(raw.x - old.x, raw.y - old.y);
+				self.overlay.update(self.offset);
+
+				old = raw;
+				isMoving = true;
+			};
+
+			//If we're touching an element, show element
+			obj.onend = function(x, y) {
+
+				//If we have moved the camera, we don't want to select anything
+				if (isMoving || !elem)
+					return;
 
 				self.overlay.show(elem, self.offset);
 
 				self.overlay.clickdelete = function() {
 					var i = self.elements.indexOf(elem);
+					self.deleted.push(elem);
 					self.elements.splice(i, 1);
 					self.draw();
-					self.overlay.hide();
+				};
+
+				self.overlay.clicksendtoback = function() {
+					var i = self.elements.indexOf(elem);
+					self.elements.splice(i, 1);
+					self.elements.splice(0, 0, elem);
+					self.draw();
+				};
+
+				self.overlay.clicksendtofront = function() {
+					var i = self.elements.indexOf(elem);
+					self.elements.splice(i, 1);
+					self.elements.push(elem);
+					self.draw();
 				};
 			};
 		};
@@ -485,10 +635,10 @@
 
 				if (obj.onmove) {
 					obj.onmove(
-						evt.offsetX - self.camera.x,
-						evt.offsetY - self.camera.y,
-						new Point(evt.offsetX, evt.offsetY)
-					);
+							evt.offsetX - self.camera.x,
+							evt.offsetY - self.camera.y,
+							new Point(evt.offsetX, evt.offsetY)
+							);
 				}
 			}
 
@@ -497,10 +647,10 @@
 
 				if (obj.onend) {
 					obj.onend(
-						evt.offsetX - self.camera.x,
-						evt.offsetY - self.camera.y,
-						new Point(evt.offsetX, evt.offsetY)
-					);
+							evt.offsetX - self.camera.x,
+							evt.offsetY - self.camera.y,
+							new Point(evt.offsetX, evt.offsetY)
+							);
 				}
 
 				canvas.removeEventListener("mousemove", onMouseMove);
@@ -542,10 +692,10 @@
 
 				if (obj.onmove) {
 					obj.onmove(
-						t.pageX - self.camera.x - self.offset.x,
-						t.pageY - self.camera.y - self.offset.y,
-						new Point(t.pageX, t.pageY)
-					);
+							t.pageX - self.camera.x - self.offset.x,
+							t.pageY - self.camera.y - self.offset.y,
+							new Point(t.pageX, t.pageY)
+							);
 				}
 			}
 
@@ -561,10 +711,10 @@
 
 				if (obj.onend) {
 					obj.onend(
-						t.pageX - self.camera.x - self.offset.x,
-						t.pageY - self.camera.y - self.offset.y,
-						new Point(t.pageX, t.pageY)
-					);
+							t.pageX - self.camera.x - self.offset.x,
+							t.pageY - self.camera.y - self.offset.y,
+							new Point(t.pageX, t.pageY)
+							);
 				}
 
 				this.inTouchLine = false;
@@ -583,27 +733,64 @@
 			this.canvas.className += " mode-"+mode;
 			this.mode = mode;
 		};
+		Painter.prototype.undelete = function() {
+			if (this.deleted.length === 0)
+				return;
 
-		Painter.prototype.undo = function() {
-			if (this.elements.length > 0) {
-				this.trash.push(this.elements.pop());
-				this.draw();
-			}
-		};
-		Painter.prototype.redo = function() {
-			if (this.trash.length > 0) {
-				this.elements.push(this.trash.pop());
-				this.draw();
-			}
+			this.elements.push(this.deleted.pop());
+			this.draw();
 		};
 		Painter.prototype.clear = function() {
+			this.overlay.hide();
+			this.draw();
+			this.ctx.translate(-this.camera.x, -this.camera.y);
+			this.camera.x = 0;
+			this.camera.y = 0;
 			this.trash = [];
 			this.elements = [];
 			this.draw();
 		};
+		Painter.prototype.getDataURL = function() {
+			var canvas = document.createElement("canvas");
+			var ctx = canvas.getContext("2d");
 
-		Painter.prototype.draw = function() {
-			var ctx = this.ctx;
+			var start = new Point();
+			var end = new Point();
+
+			this.elements.forEach(function(elem, i) {
+				var rect = elem.getBoundingRect();
+
+				if (i === 0) {
+					start.x = rect.start.x;
+					start.y = rect.start.y;
+					end.x = rect.end.x;
+					end.y = rect.end.y;
+					return;
+				}
+
+				if (start.x > rect.start.x)
+					start.x = rect.start.x;
+				if (start.y > rect.start.y)
+					start.y = rect.start.y;
+				if (end.x < rect.end.x)
+					end.x = rect.end.x;
+				if (end.y < rect.end.y)
+					end.y = rect.end.y;
+			});
+
+			canvas.width = (end.x - start.x) + 20;
+			canvas.height = (end.y - start.y) + 20;
+			ctx.translate(-start.x + 10, -start.y + 10);
+
+			this.draw();
+			this.draw(ctx);
+
+			return canvas.toDataURL();
+		};
+
+		Painter.prototype.draw = function(ctx) {
+			ctx = ctx || this.ctx;
+
 			ctx.clearRect(
 				-this.camera.x,
 				-this.camera.y,
@@ -614,28 +801,28 @@
 			this.elements.forEach(function(elem) {
 				ctx.save();
 
-				this.setStyles(elem);
+				this.setStyles(elem, ctx);
 				elem.draw(ctx);
 
 				ctx.restore();
 			}.bind(this));
 		};
 
-		Painter.prototype.setStyles = function(obj, immutable) {
+		Painter.prototype.setStyles = function(obj, ctx) {
+			ctx = ctx || this.ctx;
+
 			if (obj.styles === undefined) {
 				obj.styles = {};
-				if (!immutable) {
-					for (var i in this.styles) {
-						obj.styles[i] = this.styles[i];
-					}
+				for (var i in this.styles) {
+					obj.styles[i] = this.styles[i];
 				}
 			}
 
-			this.ctx.lineWidth = obj.styles.lineWidth || undefined;
-			this.ctx.strokeStyle = obj.styles.strokeStyle || undefined;
+			ctx.lineWidth = obj.styles.lineWidth || undefined;
+			ctx.strokeStyle = obj.styles.strokeStyle || undefined;
 			if (obj.styles.lineWidth === "0")
-				this.ctx.strokeStyle = "rgba(0, 0, 0, 0)";
-			this.ctx.fillStyle = obj.styles.fillStyle || undefined;
+				ctx.strokeStyle = "rgba(0, 0, 0, 0)";
+			ctx.fillStyle = obj.styles.fillStyle || undefined;
 		};
 	//}
 })();

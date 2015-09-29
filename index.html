@@ -29,21 +29,21 @@
 				Fill: <input id="control-fill-style" type="color" value="#000000">
 				<input type="checkbox" id="control-fill-enabled">
 			</div><div class="part">
-				<div class="icon undo" onclick="painter.undo()"></div>
-				<div class="icon redo" onclick="painter.redo()"></div>
+				<div class="icon undo" onclick="painter.undelete()"></div>
 				<div class="icon clear" onclick="if (window.confirm('Are you sure you want to clear the screen?')) painter.clear()"></div>
+				<div class="icon download" onclick="window.open(painter.getDataURL())"></div>
 			</div><div class="part">
 				<input id="mode-radio-1" type="radio" name="mode" onclick="painter.setMode('freehand')">
 				<label for="mode-radio-1" class="icon freehand"></label>
 
-				<input id="mode-radio-2" type="radio" name="mode" onclick="painter.setMode('rectangle')">
-				<label for="mode-radio-2" class="icon rectangle"></label>
+				<input id="mode-radio-2" type="radio" name="mode" onclick="painter.setMode('line')">
+				<label for="mode-radio-2" class="icon line"></label>
 
-				<input id="mode-radio-3" type="radio" name="mode" onclick="painter.setMode('circle')">
-				<label for="mode-radio-3" class="icon circle"></label>
+				<input id="mode-radio-3" type="radio" name="mode" onclick="painter.setMode('rectangle')">
+				<label for="mode-radio-3" class="icon rectangle"></label>
 
-				<input id="mode-radio-4" type="radio" name="mode" onclick="painter.setMode('translate')">
-				<label for="mode-radio-4" class="icon translate"></label>
+				<input id="mode-radio-4" type="radio" name="mode" onclick="painter.setMode('circle')">
+				<label for="mode-radio-4" class="icon circle"></label>
 
 				<input id="mode-radio-5" type="radio" name="mode" onclick="painter.setMode('select')">
 				<label for="mode-radio-5" class="icon select"></label>
