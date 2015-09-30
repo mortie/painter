@@ -8,6 +8,22 @@
 		return Math.abs(num1 - num2);
 	}
 
+	function clone(obj) {
+		if (typeof obj != "object")
+			return obj;
+
+		var res = Object.create(obj);
+
+		for (var i in obj) {
+			if (!obj.hasOwnProperty(i))
+				continue;
+
+			res[i] = clone(obj[i]);
+		}
+
+		return res;
+	}
+
 	//class Overlay {
 		function Overlay(painter) {
 			var self = this;
@@ -31,8 +47,8 @@
 					t.y = -1;
 					break;
 				case 46:
-					if (self.clickdelete)
-						self.clickdelete();
+					if (self.ondelete)
+						self.ondelete();
 					self.hide();
 					return;
 				default:
@@ -51,14 +67,22 @@
 				self.update(self.painter.offset);
 			};
 
+			this.onduplicate = function() {
+				console.log("fuck");
+				var newElem = clone(self.elem);
+				newElem.translate(30, 10);
+				self.painter.elements.push(newElem);
+				self.painter.draw();
+			};
+
 			function menuEntry(key, name) {
 				var li = document.createElement("li");
 				li.innerHTML = name;
 				li.style.cssText =
 					"cursor: pointer";
 				li.onclick = function() {
-					if (self["click"+key])
-						self["click"+key]();
+					if (self["on"+key])
+						self["on"+key]();
 
 					self.hide();
 				};
@@ -80,6 +104,7 @@
 			this.menuElem.appendChild(menuEntry("delete", "Delete"));
 			this.menuElem.appendChild(menuEntry("sendtoback", "Send To Back"));
 			this.menuElem.appendChild(menuEntry("sendtofront", "Send To Front"));
+			this.menuElem.appendChild(menuEntry("duplicate", "Duplicate"));
 			this.menuElem.style.cssText =
 				"box-sizing: border-box;"+
 				"display: inline-block;"+
@@ -592,21 +617,21 @@
 
 				self.overlay.show(elem, self.offset);
 
-				self.overlay.clickdelete = function() {
+				self.overlay.ondelete = function() {
 					var i = self.elements.indexOf(elem);
 					self.deleted.push(elem);
 					self.elements.splice(i, 1);
 					self.draw();
 				};
 
-				self.overlay.clicksendtoback = function() {
+				self.overlay.onsendtoback = function() {
 					var i = self.elements.indexOf(elem);
 					self.elements.splice(i, 1);
 					self.elements.splice(0, 0, elem);
 					self.draw();
 				};
 
-				self.overlay.clicksendtofront = function() {
+				self.overlay.onsendtofront = function() {
 					var i = self.elements.indexOf(elem);
 					self.elements.splice(i, 1);
 					self.elements.push(elem);
@@ -635,10 +660,10 @@
 
 				if (obj.onmove) {
 					obj.onmove(
-							evt.offsetX - self.camera.x,
-							evt.offsetY - self.camera.y,
-							new Point(evt.offsetX, evt.offsetY)
-							);
+						evt.offsetX - self.camera.x,
+						evt.offsetY - self.camera.y,
+						new Point(evt.offsetX, evt.offsetY)
+					);
 				}
 			}
 
@@ -647,10 +672,10 @@
 
 				if (obj.onend) {
 					obj.onend(
-							evt.offsetX - self.camera.x,
-							evt.offsetY - self.camera.y,
-							new Point(evt.offsetX, evt.offsetY)
-							);
+						evt.offsetX - self.camera.x,
+						evt.offsetY - self.camera.y,
+						new Point(evt.offsetX, evt.offsetY)
+					);
 				}
 
 				canvas.removeEventListener("mousemove", onMouseMove);
@@ -692,10 +717,10 @@
 
 				if (obj.onmove) {
 					obj.onmove(
-							t.pageX - self.camera.x - self.offset.x,
-							t.pageY - self.camera.y - self.offset.y,
-							new Point(t.pageX, t.pageY)
-							);
+						t.pageX - self.camera.x - self.offset.x,
+						t.pageY - self.camera.y - self.offset.y,
+						new Point(t.pageX, t.pageY)
+					);
 				}
 			}
 
@@ -711,10 +736,10 @@
 
 				if (obj.onend) {
 					obj.onend(
-							t.pageX - self.camera.x - self.offset.x,
-							t.pageY - self.camera.y - self.offset.y,
-							new Point(t.pageX, t.pageY)
-							);
+						t.pageX - self.camera.x - self.offset.x,
+						t.pageY - self.camera.y - self.offset.y,
+						new Point(t.pageX, t.pageY)
+					);
 				}
 
 				this.inTouchLine = false;
