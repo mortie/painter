@@ -439,8 +439,6 @@
 					this.startMouse("paintRectangle", evt);
 				else if (this.mode === "circle")
 					this.startMouse("paintCircle", evt);
-				else if (this.mode === "translate")
-					this.startMouse("paintTranslate", evt);
 				else if (this.mode === "select")
 					this.startMouse("paintSelect", evt);
 				else
@@ -456,8 +454,6 @@
 					this.startTouch("paintRectangle", evt);
 				else if (this.mode === "circle")
 					this.startTouch("paintCircle", evt);
-				else if (this.mode === "translate")
-					this.startTouch("paintTranslate", evt);
 				else if (this.mode === "select")
 					this.startTouch("paintSelect", evt);
 				else
@@ -491,10 +487,10 @@
 
 			obj.onmove = function(x, y) {
 				if (
-						(diff(x, prev.x) > 5) ||
-						(diff(y, prev.y) > 5) ||
-						(diff(new Date().getTime(), prevTime) > 100)
-				   ) {
+					(diff(x, prev.x) > 5) ||
+					(diff(y, prev.y) > 5) ||
+					(diff(new Date().getTime(), prevTime) > 100)
+				) {
 					prev.x = x;
 					prev.y = y;
 					elem.addPoint(new Point(x, y), self.ctx);
@@ -598,7 +594,7 @@
 			//If we move the touch point before releasing, we move the camera
 			//instead of seleccting an element
 			obj.onmove = function(x, y, raw) {
-				if (diff(old.x, raw.x) < 10 && diff(old.y, raw.y) < 10)
+				if (!isMoving && diff(old.x, raw.x) < 10 && diff(old.y, raw.y) < 10)
 					return;
 
 				self.translateCamera(raw.x - old.x, raw.y - old.y);
