@@ -68,11 +68,30 @@
 			};
 
 			this.onduplicate = function() {
-				console.log("fuck");
 				var newElem = clone(self.elem);
 				newElem.translate(30, 10);
 				self.painter.elements.push(newElem);
 				self.painter.draw();
+			};
+
+			this.onchangeline = function() {
+				var elem = document.createElement("input");
+				elem.type = "color";
+				elem.click();
+				elem.onchange = function() {
+					self.elem.styles.strokeStyle = elem.value;
+					self.painter.draw();
+				};
+			};
+
+			this.onchangefill = function() {
+				var elem = document.createElement("input");
+				elem.type = "color";
+				elem.click();
+				elem.onchange = function() {
+					self.elem.styles.fillStyle = elem.value;
+					self.painter.draw();
+				};
 			};
 
 			function menuEntry(key, name) {
@@ -104,6 +123,8 @@
 			this.menuElem.appendChild(menuEntry("delete", "Delete"));
 			this.menuElem.appendChild(menuEntry("sendtoback", "Send To Back"));
 			this.menuElem.appendChild(menuEntry("sendtofront", "Send To Front"));
+			this.menuElem.appendChild(menuEntry("changeline", "Change Line"));
+			this.menuElem.appendChild(menuEntry("changefill", "Change Fill"));
 			this.menuElem.appendChild(menuEntry("duplicate", "Duplicate"));
 			this.menuElem.style.cssText =
 				"box-sizing: border-box;"+
@@ -157,7 +178,6 @@
 
 		Overlay.prototype.hide = function() {
 			this.visible = false;
-			this.elem = null;
 			this.containerElem.style.display = "none";
 			window.removeEventListener("keydown", this.keyHandler);
 		};
